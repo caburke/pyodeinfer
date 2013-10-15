@@ -3,10 +3,10 @@
 #########################################################################
 
 from __future__ import division
-import ode_models
+import odeinfer.ode_models
 import copy as cp
 import cPickle as pickle
-import math as m
+impimport math as m
 import matplotlib.pyplot as plt
 import numpy as np
 import PyDSTool as pd
@@ -15,7 +15,7 @@ import scipy as sp
 import scipy.stats
 
 # Define Model
-fhn_ds = pd.Generator.Vode_ODEsystem(ode_models.fhn_ds_args)
+fhn_ds = pd.Generator.Vode_ODEsystem(odeinfer.ode_models.fhn_ds_args)
 fhn_traj = fhn_ds.compute('fhn')
 
 # Create Data

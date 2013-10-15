@@ -35,3 +35,23 @@ goodwin3_args.fnspecs = {'Jacobian': (['t', 'X1', 'X2', 'X3'],
 #########################################################################
 # Darpa Models
 #########################################################################
+
+# Model 1 from the pdf
+model1_ds_args = pd.args()
+model1_ds_args.name = 'Model_1'
+model1_ds_args.fnspecs = {'Adot': (['A', 'B'], 'k0 + nu/(1 + pow((B/Ka), m)) - k1*A'),
+                          'Bdot': (['A', 'B'], 'k2*A + k3*A*pow(B, n)/(pow(Kb, n) + pow(B, n)) - k4*B')}
+model1_ds_args.varspecs = {'A': 'Adot(A, B)',
+                           'B': 'Bdot(A, B)'}
+model1_ds_args.ics = {'A': 0.0, 'B': 0.0}
+model1_ds_args.pars = {'nu': 1.177,
+                       'k0': 0.0,
+                       'k1': 0.08,
+                       'k2': 0.0482,
+                       'k3': 1.605,
+                       'k4': 0.535,
+                       'Ka': 1.1,
+                       'Kb': 3.0,
+                       'm': 3.0,
+                       'n': 2.0}
+model1_ds_args.tdata = [0., 200.]

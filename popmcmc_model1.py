@@ -44,7 +44,7 @@ plt.axis([0, 168, 0, 8])
 plt.show()
 
 # Define MCMC Parameters
-burnin =0
+burnin = 0
 thin = 1
 num_samples= 20
 num_iter = burnin + thin*num_samples
@@ -56,18 +56,30 @@ state_array = np.zeros((num_obs, num_states), dtype=float)
 noisy_state_array = np.zeros((num_obs, num_states), dtype=float)
 
 # Create Noiseless Observations
-ds_traj = dsystem.compute('simulate')
+ds_traj = model1_ds.compute('simulate')
 index = 0
 for name in state_name_list:
-    state_array[: , index ] = ds_traj(times)[name]
+    state_array[: , index ] = ds_traj(obs_times)[name]
     index += 1
 num_parm = 14
 cross_prob = 0.5
 temp = np.array([pow(x/(num_temp - 1), 5) for x in range(num_temp - 1)])
 temp = np.concatenate([temp, [1.]])
-prop_dist0 = {'pars':{'a': sp.stats.norm(0, 0.1), 'b': sp.stats.norm(0, 0.1), 'c': sp.stats.norm(0, 0.1)},
-             'init':{'V': sp.stats.norm(0, 0.02), 'R': sp.stats.norm(0, 0.02)},
-             'noise':{'V': sp.stats.norm(0, 0.1), 'R': sp.stats.norm(0, 0.1)}}
+# Initial Proposal Distributions for parameters
+prop_dist0 = {'pars':{'nu': sp.stats.norm(0, 0.1),
+                      'k0': sp.stats.norm(0, 0.1),
+                      'k1': sp.stats.norm(0, 0.1),
+                      'k2': sp.stats.norm(0, 0.1),
+                      'k3': sp.stats.norm(0, 0.1),
+                      'k4': sp.stats.norm(0, 0.1),
+                      'Ka': sp.stats.norm(0, 0.1),
+                      'Kb': sp.stats.norm(0, 0.1),
+                      'm': sp.stats.norm(0, 0.1),
+                      'n': sp.stats.norm(0, 0.1)},
+             'init':{'A': sp.stats.norm(0, 0.02), 
+                     'B': sp.stats.norm(0, 0.02)},
+             'noise':{'A': sp.stats.norm(0, 0.1), 
+                      'B': sp.stats.norm(0, 0.1)}}
 prop_dist = {}
 for i in range(num_temp):
     prop_dist[i] = prop_dist0

@@ -4,9 +4,10 @@ import numpy as np
 import PyDSTool as pd
 
 # Input should be PyDSTool dynamical system generator object
-def sim_additive_normal_noise(dsystem, times, noise_scale, state_name_list):
+def sim_additive_normal_noise(dsystem, times, noise_scale):
     # Set up array to store simulated data
     num_states = len(dsystem.initialconditions)
+    state_name_list = dsystem.initialconditions.keys()
     num_obs = len(times)
     state_array = np.zeros((num_obs, num_states), dtype=float)
     noisy_state_array = np.zeros((num_states, num_obs), dtype=float)

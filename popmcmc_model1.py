@@ -21,7 +21,7 @@ from odeinfer.priordist import *
 from odeinfer.likelihood import *
 
 # Define Model
-model1_ds = pd.Generator.Radau_ODEsystem(odeinfer.ode_models.model1_ds_args)
+model1_ds = pd.Generator.Vode_ODEsystem(odeinfer.ode_models.model1_ds_args)
 model1_traj = model1_ds.compute('model_1')
 model1_sample = model1_traj.sample()
 

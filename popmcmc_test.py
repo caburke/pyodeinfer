@@ -15,7 +15,7 @@ import scipy as sp
 import scipy.stats
 
 # Define Model
-fhn_ds = pd.Generator.Vode_ODEsystem(odeinfer.ode_models.fhn_ds_args)
+fhn_ds = pd.Generator.Dopri_ODEsystem(odeinfer.ode_models.fhn_ds_args)
 fhn_traj = fhn_ds.compute('fhn')
 
 # Create Data

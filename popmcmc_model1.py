@@ -21,7 +21,7 @@ from odeinfer.priordist import *
 from odeinfer.likelihood import *
 
 # Define Model
-model1_ds = pd.Generator.Vode_ODEsystem(odeinfer.ode_models.model1_ds_args)
+model1_ds = pd.Generator.Radau_ODEsystem(odeinfer.ode_models.model1_ds_args)
 model1_traj = model1_ds.compute('model_1')
 model1_sample = model1_traj.sample()
 
@@ -48,7 +48,7 @@ pure_obs, noisy_obs = sim_additive_normal_noise(model1_ds, obs_times, \
 # Define MCMC Parameters
 burnin = 0
 thin = 1
-num_samples= 20
+num_samples= 200
 num_iter = burnin + thin*num_samples
 num_temp = 11    
 num_states = len(model1_ds.initialconditions)
@@ -194,7 +194,7 @@ for i in xrange(num_samples):
     for p in parm_dict['pars'].iterkeys():
         # Mutate ODE parameters and Update Prior
         prop_parm = cp.deepcopy(cur_parm_dict[rand_temp])
-        prop_parm['pars'][p] += prop_dist[rand_temp]['pars'][p].rvs(1)
+        prop_parm['pars'][p] += np.asscalar(prop_dist[rand_temp]['pars'][p].rvs(1))
         prop_lpval = log_prior_pdf(prior_dict, prop_parm)
         
         # Update DS
@@ -225,7 +225,7 @@ for i in xrange(num_samples):
     for init in parm_dict['init'].iterkeys():
         # Mutate ODE initial conditions and Update Prior
         prop_parm = cp.deepcopy(cur_parm_dict[rand_temp])
-        prop_parm['init'][init] += prop_dist[rand_temp]['init'][init].rvs(1)
+        prop_parm['init'][init] += np.asscalar(prop_dist[rand_temp]['init'][init].rvs(1))
         prop_lpval = log_prior_pdf(prior_dict, prop_parm)
         
         # Update DS
@@ -255,7 +255,7 @@ for i in xrange(num_samples):
     for n in parm_dict['noise'].iterkeys():
         # Mutate noise scale parameters and Update Prior
         prop_parm = cp.deepcopy(cur_parm_dict[rand_temp])
-        prop_parm['noise'][n] += prop_dist[rand_temp]['noise'][n].rvs(1)
+        prop_parm['noise'][n] += np.asscalar(prop_dist[rand_temp]['noise'][n].rvs(1))
         prop_lpval = log_prior_pdf(prior_dict, prop_parm)
         
         # No need to update DS for noise parameter changes
@@ -307,14 +307,16 @@ for i in xrange(num_samples):
             prop_lpval1 = log_prior_pdf(prior_dict, prop_cross1)
             model1_ds.set(pars = prop_cross1['pars'], ics = prop_cross1['init'])
             prop_traj1 = model1_ds.compute('model1')
-            prop_obs1 = np.array([prop_traj1(obs_times)['A'], prop_traj1(obs_times)['B']])
+            prop_obs1 = np.transpose(np.array([prop_traj1(obs_times)['A'], 
+                                               prop_traj1(obs_times)['B']]))
             prop_llval1 = log_likelihood(noisy_obs, prop_obs1, prop_cross1)
             prop_lpstval1 = prop_lpval1 + temp[rand_temp1]*prop_llval1
             
             prop_lpval2 = log_prior_pdf(prior_dict, prop_cross2)
             model1_ds.set(pars = prop_cross2['pars'], ics = prop_cross2['init'])
             prop_traj2 = model1_ds.compute('model1')
-            prop_obs2 = np.array([prop_traj2(obs_times)['A'], prop_traj2(obs_times)['B']])
+            prop_obs2 = np.transpose(np.array([prop_traj2(obs_times)['A'], 
+                                               prop_traj2(obs_times)['B']]))
             prop_llval2 = log_likelihood(noisy_obs, prop_obs2, prop_cross2)
             prop_lpstval2 = prop_lpval2 + temp[rand_temp1]*prop_llval2
             

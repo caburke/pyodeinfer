@@ -3,7 +3,6 @@
 #########################################################################
 
 from __future__ import division
-import ode_models
 import copy as cp
 import cPickle as pickle
 import math as m
@@ -15,12 +14,14 @@ import scipy as sp
 import scipy.stats
 
 # Import from odeinfer module
-from odeinfer.stats import *
+import odeinfer
 from odeinfer.simulate import *
 from odeinfer.ode_models import *
+from odeinfer.priordist import *
+from odeinfer.likelihood import *
 
 # Define Model
-model1_ds = pd.Generator.Vode_ODEsystem(ode_models.model1_ds_args)
+model1_ds = pd.Generator.Vode_ODEsystem(odeinfer.ode_models.model1_ds_args)
 model1_traj = model1_ds.compute('model_1')
 model1_sample = model1_traj.sample()
 
@@ -28,20 +29,21 @@ model1_sample = model1_traj.sample()
 sim_times = np.arange(0, 201, 1)
 obs_times = np.arange(32, 201, 1)
 true_noise_scale = np.array([0.1, 0.1])
-pure_obs, noisy_obs = sim_additive_normal_noise(model1_ds, obs_times, true_noise_scale)
+pure_obs, noisy_obs = sim_additive_normal_noise(model1_ds, obs_times, \
+                                                true_noise_scale)
 
 # Plot Data
-plt.figure(1)
-plt.subplot(211)
-plt.plot(model1_sample['t'], model1_sample['A'], c='b')
-plt.scatter(obs_times, noisy_obs[:, 0], c='b')
-plt.axis([0, 168, 0, 8])
-plt.title('Simulated and True Data')
-plt.subplot(212)
-plt.plot(model1_sample['t'], model1_sample['B'], c='r')
-plt.scatter(obs_times, noisy_obs[:, 1], c='r')
-plt.axis([0, 168, 0, 8])
-plt.show()
+#plt.figure(1)
+#plt.subplot(211)
+#plt.plot(model1_sample['t'], model1_sample['A'], c='b')
+#plt.scatter(obs_times, noisy_obs[:, 0], c='b')
+#plt.axis([0, 200, 0, 8])
+#plt.title('Simulated and True Data')
+#plt.subplot(212)
+#plt.plot(model1_sample['t'], model1_sample['B'], c='B')
+#plt.scatter(obs_times, noisy_obs[:, 1], c='B')
+#plt.axis([0, 200, 0, 8])
+#plt.show()
 
 # Define MCMC Parameters
 burnin = 0
@@ -65,7 +67,9 @@ num_parm = 14
 cross_prob = 0.5
 temp = np.array([pow(x/(num_temp - 1), 5) for x in range(num_temp - 1)])
 temp = np.concatenate([temp, [1.]])
+
 # Initial Proposal Distributions for parameters
+# does not include cooperativity coefficients m and n
 prop_dist0 = {'pars':{'nu': sp.stats.norm(0, 0.1),
                       'k0': sp.stats.norm(0, 0.1),
                       'k1': sp.stats.norm(0, 0.1),
@@ -73,87 +77,92 @@ prop_dist0 = {'pars':{'nu': sp.stats.norm(0, 0.1),
                       'k3': sp.stats.norm(0, 0.1),
                       'k4': sp.stats.norm(0, 0.1),
                       'Ka': sp.stats.norm(0, 0.1),
-                      'Kb': sp.stats.norm(0, 0.1),
-                      'm': sp.stats.norm(0, 0.1),
-                      'n': sp.stats.norm(0, 0.1)},
+                      'Kb': sp.stats.norm(0, 0.1)},
              'init':{'A': sp.stats.norm(0, 0.02), 
                      'B': sp.stats.norm(0, 0.02)},
-             'noise':{'A': sp.stats.norm(0, 0.1), 
-                      'B': sp.stats.norm(0, 0.1)}}
+             'noise':{'A': sp.stats.norm(0, 0.001), 
+                      'B': sp.stats.norm(0, 0.001)}}
 prop_dist = {}
 for i in range(num_temp):
     prop_dist[i] = prop_dist0
 
 # Containers
 par_history = np.zeros((num_samples, num_temp), 
-                       dtype = {'names':['nu', 'k0', 'k1', 'k2', 'k3', 'k4', 'Ka', 'Kb', 'm', 'n'], 
-                                                         'formats':['float', 'float', 'float']})
-init_history = np.zeros((num_samples, num_temp), dtype = {'names':['V', 'R'], 'formats':['float', 'float']})
-noise_history = np.zeros((num_samples, num_temp), dtype = {'names':['V', 'R'], 'formats':['float', 'float']})
+                       dtype = {'names':['nu', 'k0', 'k1', 'k2', 'k3', 'k4', 'Ka', 'Kb'], 
+                                'formats': np.repeat('float', 8)})
+init_history = np.zeros((num_samples, num_temp), 
+                        dtype = {'names':['A', 'B'], 
+                                 'formats': np.repeat('float', 2)})
+noise_history = np.zeros((num_samples, num_temp), 
+                         dtype = {'names':['A', 'B'], 
+                                  'formats': np.repeat('float', 2)})
 sample_dict = {'pars': par_history,
                'init': init_history,
                'noise': noise_history}
 # Dictionary with starting values for parameters at all temperatures
-parm_dict = {'pars': {'a':0.2, 'b':0.2, 'c':3.0}, 
-             'init': {'V':-1., 'R':1.}, 
-             'noise': {'V':0.5, 'R':0.5}}
+parm_dict = {'pars':{'nu': 1.177,
+                      'k0': 0.0001,
+                      'k1': 0.08,
+                      'k2': 0.0482,
+                      'k3': 1.605,
+                      'k4': 0.535,
+                      'Ka': 1.1,
+                      'Kb': 3.0},
+             'init':{'A': noisy_obs[0,0], 
+                     'B': noisy_obs[0,1]},
+             'noise':{'A': 0.1, 
+                      'B': 0.1}}
 cur_parm_dict = {}
 for t in range(num_temp):
-    cur_parm_dict[t] = {'pars': {'a':0.2, 'b':0.2, 'c':3.0}, 
-                         'init': {'V':-1., 'R':1.}, 
-                         'noise': {'V':0.5, 'R':0.5}}
+    cur_parm_dict[t] = {'pars':{'nu': 1.177,
+                          'k0': 0.0001,
+                          'k1': 0.08,
+                          'k2': 0.0482,
+                          'k3': 1.605,
+                          'k4': 0.535,
+                          'Ka': 1.1,
+                          'Kb': 3.0},
+                         'init':{'A': noisy_obs[0,0], 
+                                 'B': noisy_obs[0,1]},
+                         'noise':{'A': 0.1, 
+                                  'B': 0.1}}
 
 # Counters
 accept_prop = {}
 for t in range(num_temp):
-    accept_prop[t] = {'pars':{'a': 0, 'b': 0, 'c': 0},
-                     'init':{'V': 0, 'R': 0},
-                     'noise':{'V': 0, 'R': 0}}
+    accept_prop[t] = {'pars':{'nu': 0,
+                              'k0': 0,
+                              'k1': 0,
+                              'k2': 0,
+                              'k3': 0,
+                              'k4': 0,
+                              'Ka': 0,
+                              'Kb': 0},
+                    'init':{'A': 0, 
+                            'B': 0},
+                    'noise':{'A': 0, 
+                             'B': 0}}
 attempt_prop = cp.deepcopy(accept_prop)
 accept_ratio = {}
 for t in range(num_temp):
-    accept_ratio[t] = {'pars':{'a': [], 'b': [], 'c': []},'init':{'V': [], 'R': []},'noise':{'V': [], 'R': []}}
+    accept_ratio[t] = {'pars':{'nu': 0,
+                              'k0': 0,
+                              'k1': 0,
+                              'k2': 0,
+                              'k3': 0,
+                              'k4': 0,
+                              'Ka': 0,
+                              'Kb': 0},
+                    'init':{'A': 0, 
+                            'B': 0},
+                    'noise':{'A': 0, 
+                             'B': 0}}
 update_ctr = 0
 pyds_error_ctr = 0
 
-#########################################################################
 # Probabilistic Model
-#########################################################################
-# Assign RV's to parameters in model
-a = sp.stats.gamma(1., loc = 0., scale = 4.)
-b = sp.stats.gamma(1., loc = 0., scale = 4.)
-c = sp.stats.gamma(1., loc = 0., scale = 4.)
-V0 = sp.stats.norm(-1.0, 0.05)
-R0 = sp.stats.norm(1.0, 0.05)
-sigmaV = sp.stats.gamma(1., loc = 0., scale = 0.5)
-sigmaR = sp.stats.gamma(1., loc = 0., scale = 0.5)
-
-# Dictionary with RV's representing prior distributions
-prior_ode_par_dict = {'a':a, 'b':b, 'c':c}
-prior_init_dict = {'V': V0, 'R': R0}
-prior_noise_dict = {'V': sigmaV, 'R': sigmaR}
-prior_dict = {'pars': prior_ode_par_dict,
-             'init': prior_init_dict,
-             'noise': prior_noise_dict}
-
-# Calculates log prior density given prior dict and current parm values
-def log_prior_pdf(prior_dict, parm_dict):
-    lpval = 0.0
-    for cat in parm_dict.iterkeys():
-        for parm in parm_dict[cat].iterkeys():
-            lpval += prior_dict[cat][parm].logpdf(parm_dict[cat][parm])
-    if np.isfinite(lpval) == False:
-        return -1E300
-    return lpval
-    
-# Calculates log likelihood given current parm values and estimated trajectories
-def log_likelihood(obs_traj, est_traj, parmdict):
-    noise_scale = np.array([[parm_dict['noise']['V']], [parm_dict['noise']['R']]])
-    pdf_mat = sp.stats.norm.logpdf(obs_traj, est_traj, noise_scale)
-    llval = np.sum(np.sum(pdf_mat))
-    if np.isfinite(llval) == False:
-        return -1E300
-    return llval
+prior_dict = odeinfer.priordist.model1_ds_prior
+log_likelihood = odeinfer.likelihood.normal_log_like
     
 #########################################################################
 # Population MCMC Code
@@ -189,10 +198,11 @@ for i in xrange(num_samples):
         prop_lpval = log_prior_pdf(prior_dict, prop_parm)
         
         # Update DS
-        fhn_ds.set(pars = prop_parm['pars'], ics = prop_parm['init'])
+        model1_ds.set(pars = prop_parm['pars'], ics = prop_parm['init'])
         try:
-            prop_traj = fhn_ds.compute('fhn')
-            prop_obs = np.array([prop_traj(obs_times)['V'], prop_traj(obs_times)['R']])
+            prop_traj = model1_ds.compute('model1')
+            prop_obs = np.transpose(np.array([prop_traj(obs_times)['A'], 
+                                              prop_traj(obs_times)['B']]))
             # Update Likelihood and Posterior
             prop_llval = log_likelihood(noisy_obs, prop_obs, prop_parm)
             prop_lpstval = prop_lpval + temp[rand_temp]*prop_llval
@@ -219,10 +229,11 @@ for i in xrange(num_samples):
         prop_lpval = log_prior_pdf(prior_dict, prop_parm)
         
         # Update DS
-        fhn_ds.set(pars = prop_parm['pars'], ics = prop_parm['init'])
+        model1_ds.set(pars = prop_parm['pars'], ics = prop_parm['init'])
         try:        
-            prop_traj = fhn_ds.compute('fhn')
-            prop_obs = np.array([prop_traj(obs_times)['V'], prop_traj(obs_times)['R']])
+            prop_traj = model1_ds.compute('model1')
+            prop_obs = np.transpose(np.array([prop_traj(obs_times)['A'], 
+                                              prop_traj(obs_times)['B']]))
             
             # Update Likelihood and Posterior
             prop_llval = log_likelihood(noisy_obs, prop_obs, prop_parm)
@@ -294,16 +305,16 @@ for i in xrange(num_samples):
         try:
             # Calculate quantities to determine crossover acceptance
             prop_lpval1 = log_prior_pdf(prior_dict, prop_cross1)
-            fhn_ds.set(pars = prop_cross1['pars'], ics = prop_cross1['init'])
-            prop_traj1 = fhn_ds.compute('fhn')
-            prop_obs1 = np.array([prop_traj1(obs_times)['V'], prop_traj1(obs_times)['R']])
+            model1_ds.set(pars = prop_cross1['pars'], ics = prop_cross1['init'])
+            prop_traj1 = model1_ds.compute('model1')
+            prop_obs1 = np.array([prop_traj1(obs_times)['A'], prop_traj1(obs_times)['B']])
             prop_llval1 = log_likelihood(noisy_obs, prop_obs1, prop_cross1)
             prop_lpstval1 = prop_lpval1 + temp[rand_temp1]*prop_llval1
             
             prop_lpval2 = log_prior_pdf(prior_dict, prop_cross2)
-            fhn_ds.set(pars = prop_cross2['pars'], ics = prop_cross2['init'])
-            prop_traj2 = fhn_ds.compute('fhn')
-            prop_obs2 = np.array([prop_traj2(obs_times)['V'], prop_traj2(obs_times)['R']])
+            model1_ds.set(pars = prop_cross2['pars'], ics = prop_cross2['init'])
+            prop_traj2 = model1_ds.compute('model1')
+            prop_obs2 = np.array([prop_traj2(obs_times)['A'], prop_traj2(obs_times)['B']])
             prop_llval2 = log_likelihood(noisy_obs, prop_obs2, prop_cross2)
             prop_lpstval2 = prop_lpval2 + temp[rand_temp1]*prop_llval2
             
@@ -333,20 +344,22 @@ for i in xrange(num_samples):
         try:
             # Calculate quantities to determine exchange acceptance
             prop_lpval1 = log_prior_pdf(prior_dict, prop_exc1)
-            fhn_ds.set(pars = prop_exc1['pars'], ics = prop_exc1['init'])
-            prop_traj1 = fhn_ds.compute('fhn')
-            prop_obs1 = np.array([prop_traj1(obs_times)['V'], prop_traj1(obs_times)['R']])
+            model1_ds.set(pars = prop_exc1['pars'], ics = prop_exc1['init'])
+            prop_traj1 = model1_ds.compute('model1')
+            prop_obs1 = np.transpose(np.array([prop_traj1(obs_times)['A'], 
+                                               prop_traj1(obs_times)['B']]))
             prop_llval1 = log_likelihood(noisy_obs, prop_obs1, prop_exc1)
             prop_lpstval1 = prop_lpval1 + temp[rand_temp1]*prop_llval1
             
             prop_lpval2 = log_prior_pdf(prior_dict, prop_exc2)
-            fhn_ds.set(pars = prop_exc2['pars'], ics = prop_exc2['init'])
-            prop_traj2 = fhn_ds.compute('fhn')
-            prop_obs2 = np.array([prop_traj2(obs_times)['V'], prop_traj2(obs_times)['R']])
+            model1_ds.set(pars = prop_exc2['pars'], ics = prop_exc2['init'])
+            prop_traj2 = model1_ds.compute('model1')
+            prop_obs2 = np.transpose(np.array([prop_traj2(obs_times)['A'], 
+                                               prop_traj2(obs_times)['B']]))
             prop_llval2 = log_likelihood(noisy_obs, prop_obs2, prop_exc2)
             prop_lpstval2 = prop_lpval2 + temp[rand_temp1]*prop_llval2
         
-            # Determine Accepteance of Exchange Move
+            # Determine Acceptance of Exchange Move
             if (prop_lpstval1 + prop_lpstval2) - (cur_lpstval[rand_temp1] + cur_lpstval[rand_temp1]) > m.log(r.random()):
                 cur_parm_dict[rand_temp1] = cp.deepcopy(prop_exc1)
                 cur_lpval[rand_temp1] = prop_lpval1
@@ -404,5 +417,3 @@ for i in xrange(num_samples):
 #########################################################################
 # End Loop
 #########################################################################
-
-

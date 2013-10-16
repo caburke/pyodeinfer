@@ -6,7 +6,7 @@ from __future__ import division
 import odeinfer.ode_models
 import copy as cp
 import cPickle as pickle
-impimport math as m
+import math as m
 import matplotlib.pyplot as plt
 import numpy as np
 import PyDSTool as pd
@@ -28,22 +28,22 @@ pure_obs = np.array([fhn_traj(obs_times)['V'], fhn_traj(obs_times)['R']])
 noisy_obs = pure_obs + np.random.normal(true_noise_mean, true_noise_scale, (2, num_obs))
 
 # Plot Data
-plt.figure(1)
-plt.subplot(211)
-plt.plot(pure_traj['t'], pure_traj['V'], c='b')
-plt.scatter(obs_times, noisy_obs[0,:], c='b')
-plt.axis([0, 20, -3, 3])
-plt.title('Simulated and True Data')
-plt.subplot(212)
-plt.plot(pure_traj['t'], pure_traj['R'], c='r')
-plt.scatter(obs_times, noisy_obs[1,:], c='r')
-plt.axis([0, 20, -2, 2])
-plt.savefig('pop_mcmc_plots/sim_data.pdf')
+#plt.figure(1)
+#plt.subplot(211)
+#plt.plot(pure_traj['t'], pure_traj['V'], c='b')
+#plt.scatter(obs_times, noisy_obs[0,:], c='b')
+#plt.axis([0, 20, -3, 3])
+#plt.title('Simulated and True Data')
+#plt.subplot(212)
+#plt.plot(pure_traj['t'], pure_traj['R'], c='r')
+#plt.scatter(obs_times, noisy_obs[1,:], c='r')
+#plt.axis([0, 20, -2, 2])
+#plt.savefig('pop_mcmc_plots/sim_data.pdf')
 
 # Define MCMC Parameters
 burnin =0
 thin = 1
-num_samples= 20000
+num_samples= 100
 num_iter = burnin + thin*num_samples
 num_temp = 11
 num_parm = 7
@@ -215,7 +215,7 @@ for i in xrange(num_samples):
     for n in parm_dict['noise'].iterkeys():
         # Mutate noise scale parameters and Update Prior
         prop_parm = cp.deepcopy(cur_parm_dict[rand_temp])
-        prop_parm['noise'][n] += prop_dist[rand_temp]['noise'][n].rvs(1)
+        prop_parm['noise'][n] += np.asscalar(prop_dist[rand_temp]['noise'][n].rvs(1))
         prop_lpval = log_prior_pdf(prior_dict, prop_parm)
         
         # No need to update DS for noise parameter changes

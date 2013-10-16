@@ -10,7 +10,7 @@ def sim_additive_normal_noise(dsystem, times, noise_scale):
     state_name_list = dsystem.initialconditions.keys()
     num_obs = len(times)
     state_array = np.zeros((num_obs, num_states), dtype=float)
-    noisy_state_array = np.zeros((num_states, num_obs), dtype=float)
+    noisy_state_array = np.zeros((num_obs, num_states), dtype=float)
     
     # Create Noiseless Observations
     ds_traj = dsystem.compute('simulate')

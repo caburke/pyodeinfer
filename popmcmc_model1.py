@@ -85,6 +85,21 @@ prop_dist0 = {'pars':{'nu': sp.stats.norm(0, 0.1),
 prop_dist = {}
 for i in range(num_temp):
     prop_dist[i] = prop_dist0
+    
+prop_dist_std = {}
+for t in range(num_temp):
+    prop_dist_std[t] = {'pars':{'nu': [],
+                              'k0': [],
+                              'k1': [],
+                              'k2': [],
+                              'k3': [],
+                              'k4': [],
+                              'Ka': [],
+                              'Kb': []},
+                    'init':{'A': [], 
+                            'B': []},
+                    'noise':{'A': [], 
+                             'B': []}}
 
 # Containers
 par_history = np.zeros((num_samples, num_temp), 
@@ -184,9 +199,6 @@ for t in range(num_temp):
     
 # Start Loop!
 for i in xrange(num_samples):
-    
-    if i % 10 == 0:
-        print 'Iteration', i
     
     # Mutation Step
     rand_temp = np.random.randint(0, num_temp)
@@ -380,20 +392,20 @@ for i in xrange(num_samples):
     #Adapt Proposal Standard Deviations
     if i % 100 == 0 and i < burnin and i <> 0:
         print 'Iteration', i
-        update_ctr += 1
         for t in xrange(num_temp):
             for cat in parm_dict.iterkeys():
                 for p in parm_dict[cat].iterkeys():
                     try:
                         accept_ratio[t][cat][p].append(accept_prop[t][cat][p]/attempt_prop[t][cat][p])
                         if accept_ratio[t][cat][p][update_ctr] < 0.2:
-                            prop_dist[t][cat][p] *= 0.9
+                            prop_dist[t][cat][p].args = (0, prop_dist[t][cat][p].args[1]*0.9)
                         elif accept_ratio[t][cat][p][update_ctr] < 0.5:
                             pass
                         else:
-                            prop_dist[t][cat][p] *= 1.1
+                            prop_dist[t][cat][p].args = (0, prop_dist[t][cat][p].args[1]*1.1)
                     except ZeroDivisionError:
                         accept_ratio[t][cat][p].append(0)
+        update_ctr += 1
                         
     # Save Output
     if i > burnin:
@@ -406,17 +418,22 @@ for i in xrange(num_samples):
                 noise_history[i][t][n] = cur_parm_dict[t]['noise'][n]
                     
     # Write Output to file on occasion
-    if i % 1000 and 1 <> 0:
+    if i % 1000 and i <> 0:
         sample_dict['pars'] = par_history
         sample_dict['init'] = init_history
         sample_dict['noise'] = noise_history
+        # Save proposal dist std dev's
+        for t in prop_dist.iterkeys():
+            for c in prop_dist[t].iterkeys():
+                for p in prop_dist[t][c].iterkeys():
+                    prop_dist_std[t][c][p] = prop_dist[t][c][p].args[1]
         save_dict = {'parameter history': sample_dict,
-                     'final_prop_dist': prop_dist,
+                     'final_prop_dist': prop_dist_std,
                      'acceptance_rate': accept_ratio,
                      'error_count': pyds_error_ctr}
         save_string = 'pop_mcmc_results.pickle'
         out_file = open(save_string, 'w')
-        pickle.dump(sample_dict, out_file)
+        pickle.dump(save_dict, out_file)
         out_file.close()
 
     

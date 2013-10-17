@@ -46,9 +46,9 @@ pure_obs, noisy_obs = sim_additive_normal_noise(model1_ds, obs_times, \
 #plt.show()
 
 # Define MCMC Parameters
-burnin = 0
-thin = 1
-num_samples= 1000
+burnin = 100000
+thin = 10
+num_samples= 10000
 num_iter = burnin + thin*num_samples
 num_temp = 11    
 num_states = len(model1_ds.initialconditions)
@@ -145,18 +145,18 @@ for t in range(num_temp):
 attempt_prop = cp.deepcopy(accept_prop)
 accept_ratio = {}
 for t in range(num_temp):
-    accept_ratio[t] = {'pars':{'nu': 0,
-                              'k0': 0,
-                              'k1': 0,
-                              'k2': 0,
-                              'k3': 0,
-                              'k4': 0,
-                              'Ka': 0,
-                              'Kb': 0},
-                    'init':{'A': 0, 
-                            'B': 0},
-                    'noise':{'A': 0, 
-                             'B': 0}}
+    accept_ratio[t] = {'pars':{'nu': [],
+                              'k0': [],
+                              'k1': [],
+                              'k2': [],
+                              'k3': [],
+                              'k4': [],
+                              'Ka': [],
+                              'Kb': []},
+                    'init':{'A': [], 
+                            'B': []},
+                    'noise':{'A': [], 
+                             'B': []}}
 update_ctr = 0
 pyds_error_ctr = 0
 
@@ -406,10 +406,14 @@ for i in xrange(num_samples):
                 noise_history[i][t][n] = cur_parm_dict[t]['noise'][n]
                     
     # Write Output to file on occasion
-    if i % 100 and 1 <> 0:
+    if i % 1000 and 1 <> 0:
         sample_dict['pars'] = par_history
         sample_dict['init'] = init_history
         sample_dict['noise'] = noise_history
+        save_dict = {'parameter history': sample_dict,
+                     'final_prop_dist': prop_dist,
+                     'acceptance_rate': accept_ratio,
+                     'error_count': pyds_error_ctr}
         save_string = 'pop_mcmc_results.pickle'
         out_file = open(save_string, 'w')
         pickle.dump(sample_dict, out_file)

@@ -1,9 +1,11 @@
 # Classes for MCMC algorithms
 
-def class MCMC(dsystem, prior, likelihood,
+def class MCMC(dsystem, state_data, tdata, prior, likelihood,
                num_samples, burnin, thin):
     def _init_(self):
         self.dsystem = dsystem
+        self.state_data = state_data
+        self.tdata = tdata
         self.prior = prior
         self.likelihood = likelihood
         self.num_samples = num_samples
@@ -14,4 +16,5 @@ def class MCMC(dsystem, prior, likelihood,
         self.num_states = len(self.state_names)
         self.par_dict = dsystem.pars
         self.num_pars = len(self.par_dict)
+    def popMCMC(temp_list, prop_dist)
         

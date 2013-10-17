@@ -21,7 +21,7 @@ from odeinfer.priordist import *
 from odeinfer.likelihood import *
 
 # Define Model
-model1_ds = pd.Generator.Vode_ODEsystem(odeinfer.ode_models.model1_ds_args)
+model1_ds = pd.Generator.Dopri_ODEsystem(odeinfer.ode_models.model1_ds_args)
 model1_traj = model1_ds.compute('model_1')
 model1_sample = model1_traj.sample()
 
@@ -48,7 +48,7 @@ pure_obs, noisy_obs = sim_additive_normal_noise(model1_ds, obs_times, \
 # Define MCMC Parameters
 burnin = 0
 thin = 1
-num_samples= 200
+num_samples= 1000
 num_iter = burnin + thin*num_samples
 num_temp = 11    
 num_states = len(model1_ds.initialconditions)
@@ -217,7 +217,7 @@ for i in xrange(num_samples):
                 accept_prop[rand_temp]['pars'][p] += 1
             attempt_prop[rand_temp]['pars'][p] += 1
      
-        except pd.PyDSTool_ExistError:
+        except (pd.PyDSTool_ExistError, TypeError):
             pyds_error_ctr += 1
         
    
@@ -248,7 +248,7 @@ for i in xrange(num_samples):
                 cur_lpstval[rand_temp] = prop_lpstval
                 accept_prop[rand_temp]['init'][init] += 1
             attempt_prop[rand_temp]['init'][init] += 1
-        except pd.PyDSTool_ExistError:
+        except (pd.PyDSTool_ExistError, TypeError):
             pyds_error_ctr += 1
         
     # Update Noise Parameters
@@ -333,7 +333,7 @@ for i in xrange(num_samples):
                 cur_obs[rand_temp2] = prop_obs2
                 cur_llval[rand_temp2] = prop_llval2
                 cur_lpstval[rand_temp2] = prop_lpstval2
-        except pd.PyDSTool_ExistError:
+        except (pd.PyDSTool_ExistError, TypeError):
             pyds_error_ctr += 1
     
     # Exchange
@@ -374,8 +374,8 @@ for i in xrange(num_samples):
                 cur_obs[rand_temp2] = prop_obs2
                 cur_llval[rand_temp2] = prop_llval2
                 cur_lpstval[rand_temp2] = prop_lpstval2
-        except pd.PyDSTool_ExistError:
-            pds_error_ctr += 1
+        except (pd.PyDSTool_ExistError, TypeError):
+            pyds_error_ctr += 1
     
     #Adapt Proposal Standard Deviations
     if i % 100 == 0 and i < burnin and i <> 0:

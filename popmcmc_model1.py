@@ -102,7 +102,7 @@ for t in range(num_temp):
                              'B': []}}
 
 # Containers
-par_history = np.zeros((num_samples, num_temp), 
+par_history = np.zeros((num_iter, num_temp), 
                        dtype = {'names':['nu', 'k0', 'k1', 'k2', 'k3', 'k4', 'Ka', 'Kb'], 
                                 'formats': np.repeat('float', 8)})
 init_history = np.zeros((num_samples, num_temp), 
@@ -198,7 +198,7 @@ for t in range(num_temp):
     cur_lpstval[t] = cur_lpval[t] + temp[t]*cur_llval[t]
     
 # Start Loop!
-for i in xrange(num_samples):
+for i in xrange(num_iter):
     
     # Mutation Step
     rand_temp = np.random.randint(0, num_temp)
@@ -408,17 +408,16 @@ for i in xrange(num_samples):
         update_ctr += 1
                         
     # Save Output
-    if i > burnin:
-        for t in xrange(num_temp):
-            for p in parm_dict['pars'].iterkeys():
-                par_history[i][t][p] = cur_parm_dict[t]['pars'][p]
-            for init in parm_dict['init'].iterkeys():
-                init_history[i][t][init] = cur_parm_dict[t]['init'][init]
-            for n in parm_dict['noise'].iterkeys():
-                noise_history[i][t][n] = cur_parm_dict[t]['noise'][n]
+    for t in xrange(num_temp):
+        for p in parm_dict['pars'].iterkeys():
+            par_history[i][t][p] = cur_parm_dict[t]['pars'][p]
+        for init in parm_dict['init'].iterkeys():
+            init_history[i][t][init] = cur_parm_dict[t]['init'][init]
+        for n in parm_dict['noise'].iterkeys():
+            noise_history[i][t][n] = cur_parm_dict[t]['noise'][n]
                     
     # Write Output to file on occasion
-    if i % 1000 and i <> 0:
+    if i % 1000 == 0 and i > burnin:
         sample_dict['pars'] = par_history
         sample_dict['init'] = init_history
         sample_dict['noise'] = noise_history
@@ -431,7 +430,7 @@ for i in xrange(num_samples):
                      'final_prop_dist': prop_dist_std,
                      'acceptance_rate': accept_ratio,
                      'error_count': pyds_error_ctr}
-        save_string = 'pop_mcmc_results.pickle'
+        save_string = 'pop_mcmc_results_10-23-13.pickle'
         out_file = open(save_string, 'w')
         pickle.dump(save_dict, out_file)
         out_file.close()

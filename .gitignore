@@ -19,3 +19,8 @@
 
 dop853*
 radau5*
+
+# Data Files #
+##############
+*.pickle
+*.pkl

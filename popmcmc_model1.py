@@ -102,7 +102,7 @@ for t in range(num_temp):
                              'B': []}}
 
 # Containers
-par_history = np.zeros((num_iter, num_temp), 
+par_history = np.zeros((num_samples, num_temp), 
                        dtype = {'names':['nu', 'k0', 'k1', 'k2', 'k3', 'k4', 'Ka', 'Kb'], 
                                 'formats': np.repeat('float', 8)})
 init_history = np.zeros((num_samples, num_temp), 
@@ -172,8 +172,10 @@ for t in range(num_temp):
                             'B': []},
                     'noise':{'A': [], 
                              'B': []}}
-update_ctr = 0
+# Counters for use in loops
 pyds_error_ctr = 0
+save_ctr = 0
+update_ctr = 0
 
 # Probabilistic Model
 prior_dict = odeinfer.priordist.model1_ds_prior
@@ -398,44 +400,62 @@ for i in xrange(num_iter):
                     try:
                         accept_ratio[t][cat][p].append(accept_prop[t][cat][p]/attempt_prop[t][cat][p])
                         if accept_ratio[t][cat][p][update_ctr] < 0.2:
-                            prop_dist[t][cat][p].args = (0, prop_dist[t][cat][p].args[1]*0.9)
+                            prop_dist[t][cat][p].args = (0, prop_dist[t][cat][p].args[1]*1.1)
                         elif accept_ratio[t][cat][p][update_ctr] < 0.5:
                             pass
                         else:
-                            prop_dist[t][cat][p].args = (0, prop_dist[t][cat][p].args[1]*1.1)
+                            prop_dist[t][cat][p].args = (0, prop_dist[t][cat][p].args[1]*0.9)
                     except ZeroDivisionError:
                         accept_ratio[t][cat][p].append(0)
         update_ctr += 1
-                        
-    # Save Output
-    for t in xrange(num_temp):
-        for p in parm_dict['pars'].iterkeys():
-            par_history[i][t][p] = cur_parm_dict[t]['pars'][p]
-        for init in parm_dict['init'].iterkeys():
-            init_history[i][t][init] = cur_parm_dict[t]['init'][init]
-        for n in parm_dict['noise'].iterkeys():
-            noise_history[i][t][n] = cur_parm_dict[t]['noise'][n]
-                    
-    # Write Output to file on occasion
-    if i % 1000 == 0 and i > burnin:
-        sample_dict['pars'] = par_history
-        sample_dict['init'] = init_history
-        sample_dict['noise'] = noise_history
-        # Save proposal dist std dev's
-        for t in prop_dist.iterkeys():
-            for c in prop_dist[t].iterkeys():
-                for p in prop_dist[t][c].iterkeys():
-                    prop_dist_std[t][c][p] = prop_dist[t][c][p].args[1]
-        save_dict = {'parameter history': sample_dict,
-                     'final_prop_dist': prop_dist_std,
-                     'acceptance_rate': accept_ratio,
-                     'error_count': pyds_error_ctr}
-        save_string = 'pop_mcmc_results_10-23-13.pickle'
-        out_file = open(save_string, 'w')
-        pickle.dump(save_dict, out_file)
-        out_file.close()
-
+        
+    if i % 100 == 0 and i > burnin:
+            print 'Iteration', i
+            
+    # Write Output to Array
+    if i >= burnin and i % thin == 0:
+        for t in xrange(num_temp):
+            for p in parm_dict['pars'].iterkeys():
+                par_history[save_ctr][t][p] = cur_parm_dict[t]['pars'][p]
+            for init in parm_dict['init'].iterkeys():
+                init_history[save_ctr][t][init] = cur_parm_dict[t]['init'][init]
+            for n in parm_dict['noise'].iterkeys():
+                noise_history[save_ctr][t][n] = cur_parm_dict[t]['noise'][n]
+        save_ctr += 1
+        
     
 #########################################################################
 # End Loop
 #########################################################################
+
+# Write Output to file after Loop
+sample_dict['pars'] = par_history
+sample_dict['init'] = init_history
+sample_dict['noise'] = noise_history
+# Save proposal dist std dev's
+for t in prop_dist.iterkeys():
+    for c in prop_dist[t].iterkeys():
+        for p in prop_dist[t][c].iterkeys():
+            prop_dist_std[t][c][p] = prop_dist[t][c][p].args[1]
+# Dictionary containing model output
+save_dict = {'parameter history': sample_dict,
+             'final_prop_dist': prop_dist_std,
+             'acceptance_rate': accept_ratio,
+             'error_count': pyds_error_ctr}
+# Name of output file
+save_string = 'pop_mcmc_results_10-23-13.pickle'
+out_file = open(save_string, 'w')
+pickle.dump(save_dict, out_file)
+out_file.close()
+
+#########################################################################
+# Analyze Output
+#########################################################################
+
+#open_file = open('pop_mcmc_results_10-23-13.pickle', 'r')
+#pop_data = cPickle.load(open_file)
+#open_file.close()
+#parameter_history = pop_data['parameter history']
+#final_prop_dist = pop_data['final_prop_dist']
+#acceptance_rate = pop_data['acceptance_rate']
+#num_errors = pop_data['error_count']

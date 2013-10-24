@@ -17,4 +17,8 @@ def class MCMC(dsystem, state_data, tdata, prior, likelihood,
         self.par_dict = dsystem.pars
         self.num_pars = len(self.par_dict)
     def popMCMC(temp_list, prop_dist)
-        
+
+
+# Functions
+
+def adapt_prop_std()

@@ -55,3 +55,4 @@ model1_ds_args.pars = {'nu': 1.177,
                        'm': 3.0,
                        'n': 2.0}
 model1_ds_args.tdata = [0., 200.]
+model1_ds_args.algparams = {'max_pts': 1000000}

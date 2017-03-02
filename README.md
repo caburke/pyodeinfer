@@ -16,7 +16,7 @@ model1_gpy.py file, but that was an exploration.
 ### Structure
 
 The populationmcmc_model1.py file runs the Population MCMC algorithm on the 
-models, prior distributions, likelihood, and data defined in the odeiner 
+models, prior distributions, likelihood, and data defined in the odeinfer 
 module.  There are also model definitions for the Fitzhugh Nagumo
 model which is often used as a simple example for algorithms involving
 limit cycle oscillators.  The prior distribution for the model parameters

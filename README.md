@@ -23,3 +23,9 @@ limit cycle oscillators.  The prior distribution for the model parameters
 along with a normal likelihood with mean defined by the solution of a system of ODEs in 
 odeinfer/ode_models define the posterior distribution that is the
 target of the population MCMC algorithm.
+
+### Results
+This repo was a good way to get initial results for this project, but the ODE solver wasn't fast enough
+and so the code was migrated to MATLAB to make use of the SUNDIALS ODE Solver toolbox in MATLAB and 
+automatic differentiation for the Simplified manifold metropolis adjusted langevin algorithm SMMALA.
+This code has a better package structure and can be found in my MATLAB_ODE repo.
